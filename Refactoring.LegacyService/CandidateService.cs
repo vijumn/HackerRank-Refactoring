@@ -1,43 +1,45 @@
 ﻿namespace Refactoring.LegacyService
 {
-    using System;
     using Refactoring.LegacyService.CreditProvider;
     using Refactoring.LegacyService.DataAccess;
     using Refactoring.LegacyService.Models;
     using Refactoring.LegacyService.Repostories;
     using Refactoring.LegacyService.Services;
     using Refactoring.LegacyService.Validators;
+    using System;
 
     public class CandidateService
     {
-        private readonly ICandidateCreditService _candidateCreditServiceClient;
         private readonly IPositionRepository _positionRepository;
-        private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ICandidateDataAccess _candidateDataAccess;
-        private  readonly CandidateValidator _candidateValidator;
+        private readonly CandidateValidator _candidateValidator;
+        private readonly CreditProviderFactory _creditProviderFactory;
 
-        public CandidateService(ICandidateCreditService CandidateCreditServiceClient, 
-            IPositionRepository positionRepository, 
-            IDateTimeProvider dateTimeProvider, 
+        public CandidateService(
+            IPositionRepository positionRepository,
             ICandidateDataAccess candidateDataAccess,
             CandidateValidator candidateValidator
-            )
+,
+            CreditProviderFactory creditProviderFactory)
         {
-            _candidateCreditServiceClient = CandidateCreditServiceClient;
             _positionRepository = positionRepository;
-            _dateTimeProvider = dateTimeProvider;
             _candidateDataAccess = candidateDataAccess;
             _candidateValidator = candidateValidator;
+            _creditProviderFactory = creditProviderFactory;
         }
+
         public CandidateService() : this(
-                    new CandidateCreditServiceClient(), new PositionRepository(), new DateTimeProvider(), new CandidateDataAccessProxy() , new CandidateValidator(new DateTimeProvider())
+                     new PositionRepository(),
+                     new CandidateDataAccessProxy(),
+                     new CandidateValidator(new DateTimeProvider()),
+                     new CreditProviderFactory(new CandidateCreditServiceClient())
         )
         {
         }
+
         public bool AddCandidate(string firname, string surname, string email, DateTime dateOfBirth, int positionid)
         {
-
-            if (!_candidateValidator.HasValidName(firname,surname))
+            if (!_candidateValidator.HasValidName(firname, surname))
             {
                 return false;
             }
@@ -46,13 +48,12 @@
             {
                 return false;
             }
-          
-            if ( !_candidateValidator.IsCandidateAgeAbove18(dateOfBirth))
+
+            if (!_candidateValidator.IsCandidateAgeAbove18(dateOfBirth))
             {
                 return false;
             }
 
-            
             var position = _positionRepository.GetById(positionid);
 
             var candidate = new Candidate
@@ -64,23 +65,17 @@
                 Surname = surname
             };
 
-
-            ICreditProvider provider = CreditProviderFactory.GetCreditProvider(position.Name, _candidateCreditServiceClient);
-            var creditprovided = provider.GetCreditLimit(candidate); 
-           
+            ICreditProvider provider = _creditProviderFactory.GetCreditProvider(position.Name);
+            var creditprovided = provider.GetCreditLimit(candidate);
 
             if (_candidateValidator.HasCreditLessthan500(creditprovided))
-            { 
+            {
                 return false;
             }
-           
 
             _candidateDataAccess.AddCandidate(candidate);
 
             return true;
         }
-
-
-
     }
 }

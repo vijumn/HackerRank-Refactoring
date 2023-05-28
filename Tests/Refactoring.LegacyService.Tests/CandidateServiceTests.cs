@@ -5,6 +5,7 @@ using Moq;
 using Refactoring.LegacyService.DataAccess;
 using Refactoring.LegacyService.Repostories;
 using Refactoring.LegacyService.Services;
+using Refactoring.LegacyService.CreditProvider;
 
 namespace Refactoring.LegacyService.Tests
 {
@@ -15,10 +16,11 @@ namespace Refactoring.LegacyService.Tests
         private readonly Mock<IDateTimeProvider> _dateTimeProvider = new Mock<IDateTimeProvider>();
         private readonly Mock<IPositionRepository> _positionRespository = new Mock<IPositionRepository>();
         private readonly Mock<ICandidateCreditService> _candidateCreditService =new Mock<ICandidateCreditService>();
+        private readonly Mock<CreditProviderFactory> _creditProviderFactory = new Mock<CreditProviderFactory>();
 
         public CandidateServiceTests()
         {
-            _sut = new CandidateService(_candidateCreditService.Object,_positionRespository.Object, _dateTimeProvider.Object, _candidateDataAccess.Object, new Validators.CandidateValidator(_dateTimeProvider.Object));
+            _sut = new CandidateService(_positionRespository.Object, _candidateDataAccess.Object, new Validators.CandidateValidator(_dateTimeProvider.Object), new CreditProviderFactory(_candidateCreditService.Object));
         }
 
         [Fact]

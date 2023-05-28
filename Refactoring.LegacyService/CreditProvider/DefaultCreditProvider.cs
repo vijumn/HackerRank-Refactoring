@@ -8,11 +8,9 @@ namespace Refactoring.LegacyService.CreditProvider
 {
     public class DefaultCreditProvider : ICreditProvider
     {
-        private readonly ICandidateCreditService _candidateCreditServiceClient;
 
-        public DefaultCreditProvider(ICandidateCreditService candidateCreditServiceClient)
+        public DefaultCreditProvider()
         {
-            _candidateCreditServiceClient = candidateCreditServiceClient;
         }
 
         public CreditLimit GetCreditLimit(Candidate candidate)
