@@ -1,6 +1,7 @@
 ﻿namespace Refactoring.LegacyService
 {
     using System;
+    using Refactoring.LegacyService.CreditProvider;
     using Refactoring.LegacyService.DataAccess;
     using Refactoring.LegacyService.Models;
     using Refactoring.LegacyService.Repostories;
@@ -63,29 +64,12 @@
                 Surname = surname
             };
 
-            if (position.Name == "SecuritySpecialist")
-            {
-                // Do credit check and half credit
-                candidate.RequireCreditCheck = true;
-                var credit = _candidateCreditServiceClient.GetCredit(candidate.Firstname, candidate.Surname, candidate.DateOfBirth);
-                credit = credit / 2;
-                candidate.Credit = credit;
-            }
-            else if (position.Name == "FeatureDeveloper")
-            {
-                // Do credit check
-                candidate.RequireCreditCheck = true;
 
-                var credit = _candidateCreditServiceClient.GetCredit(candidate.Firstname, candidate.Surname, candidate.DateOfBirth);
-                candidate.Credit = credit;
-            }
-            else
-            {
-                // No credit check
-                candidate.RequireCreditCheck = false;
-            }
+            ICreditProvider provider = CreditProviderFactory.GetCreditProvider(position.Name, _candidateCreditServiceClient);
+            var creditprovided = provider.GetCreditLimit(candidate); 
+           
 
-            if (_candidateValidator.HasCreditLessthan500(candidate))
+            if (_candidateValidator.HasCreditLessthan500(creditprovided))
             { 
                 return false;
             }

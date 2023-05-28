@@ -15,9 +15,9 @@ namespace Refactoring.LegacyService.Validators
             _dateTimeProvider = dateTimeProvider;
         }
 
-        public bool HasCreditLessthan500(Candidate candidate)
+        public bool HasCreditLessthan500(CreditLimit creditLimit)
         {
-            if (candidate.RequireCreditCheck && candidate.Credit < 500)
+            if (creditLimit.HasCreditLimit && creditLimit.Credit < 500)
             {
                 return true;
             }
