@@ -1,36 +1,58 @@
 ﻿namespace Refactoring.LegacyService
 {
     using System;
+    using Refactoring.LegacyService.DataAccess;
+    using Refactoring.LegacyService.Models;
+    using Refactoring.LegacyService.Repostories;
+    using Refactoring.LegacyService.Services;
+    using Refactoring.LegacyService.Validators;
 
     public class CandidateService
     {
+        private readonly ICandidateCreditService _candidateCreditServiceClient;
+        private readonly IPositionRepository _positionRepository;
+        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly ICandidateDataAccess _candidateDataAccess;
+        private  readonly CandidateValidator _candidateValidator;
+
+        public CandidateService(ICandidateCreditService CandidateCreditServiceClient, 
+            IPositionRepository positionRepository, 
+            IDateTimeProvider dateTimeProvider, 
+            ICandidateDataAccess candidateDataAccess,
+            CandidateValidator candidateValidator
+            )
+        {
+            _candidateCreditServiceClient = CandidateCreditServiceClient;
+            _positionRepository = positionRepository;
+            _dateTimeProvider = dateTimeProvider;
+            _candidateDataAccess = candidateDataAccess;
+            _candidateValidator = candidateValidator;
+        }
+        public CandidateService() : this(
+                    new CandidateCreditServiceClient(), new PositionRepository(), new DateTimeProvider(), new CandidateDataAccessProxy() , new CandidateValidator(new DateTimeProvider())
+        )
+        {
+        }
         public bool AddCandidate(string firname, string surname, string email, DateTime dateOfBirth, int positionid)
         {
-            if (string.IsNullOrEmpty(firname) || string.IsNullOrEmpty(surname))
+
+            if (!_candidateValidator.HasValidName(firname,surname))
             {
                 return false;
             }
 
-            if (!email.Contains("@") || !email.Contains("."))
+            if (!_candidateValidator.HasValidEmail(email))
+            {
+                return false;
+            }
+          
+            if ( !_candidateValidator.IsCandidateAgeAbove18(dateOfBirth))
             {
                 return false;
             }
 
-            var now = DateTime.Now;
-            int age = now.Year - dateOfBirth.Year;
-
-            if (now.Month < dateOfBirth.Month || (now.Month == dateOfBirth.Month && now.Day < dateOfBirth.Day))
-            {
-                age--;
-            }
-
-            if (age < 18)
-            {
-                return false;
-            }
-
-            var positionRepo = new PositionRepository();
-            var position = positionRepo.GetById(positionid);
+            
+            var position = _positionRepository.GetById(positionid);
 
             var candidate = new Candidate
             {
@@ -45,22 +67,17 @@
             {
                 // Do credit check and half credit
                 candidate.RequireCreditCheck = true;
-                using (var candidateCreditService = new CandidateCreditServiceClient())
-                {
-                    var credit = candidateCreditService.GetCredit(candidate.Firstname, candidate.Surname, candidate.DateOfBirth);
-                    credit = credit / 2;
-                    candidate.Credit = credit;
-                }                
+                var credit = _candidateCreditServiceClient.GetCredit(candidate.Firstname, candidate.Surname, candidate.DateOfBirth);
+                credit = credit / 2;
+                candidate.Credit = credit;
             }
             else if (position.Name == "FeatureDeveloper")
             {
                 // Do credit check
                 candidate.RequireCreditCheck = true;
-                using (var candidateCreditService = new CandidateCreditServiceClient())
-                {
-                    var credit = candidateCreditService.GetCredit(candidate.Firstname, candidate.Surname, candidate.DateOfBirth);
-                    candidate.Credit = credit;
-                }
+
+                var credit = _candidateCreditServiceClient.GetCredit(candidate.Firstname, candidate.Surname, candidate.DateOfBirth);
+                candidate.Credit = credit;
             }
             else
             {
@@ -68,14 +85,18 @@
                 candidate.RequireCreditCheck = false;
             }
 
-            if (candidate.RequireCreditCheck && candidate.Credit < 500)
-            {
+            if (_candidateValidator.HasCreditLessthan500(candidate))
+            { 
                 return false;
             }
+           
 
-            CandidateDataAccess.AddCandidate(candidate);
+            _candidateDataAccess.AddCandidate(candidate);
 
             return true;
         }
+
+
+
     }
 }
