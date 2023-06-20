@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Refactoring.LegacyService.CreditProvider
 {
-    public  class CreditProviderFactory
+    public class CreditProviderFactory : ICreditProviderFactory
     {
         private readonly IReadOnlyDictionary<string, ICreditProvider> _creditProviders;
         private readonly ICandidateCreditService _candidateCreditServiceClient;
@@ -16,7 +16,7 @@ namespace Refactoring.LegacyService.CreditProvider
         {
             _candidateCreditServiceClient = candidateCreditServiceClient;
 
-            var providerType= typeof(ICreditProvider);
+            var providerType = typeof(ICreditProvider);
             _creditProviders = providerType.Assembly.ExportedTypes
                 .Where(p => providerType.IsAssignableFrom(p) && !p.IsInterface && !p.IsAbstract)
                 .Select(c =>
@@ -27,12 +27,12 @@ namespace Refactoring.LegacyService.CreditProvider
                         return Activator.CreateInstance(c, _candidateCreditServiceClient) as ICreditProvider;
                     }
                     return Activator.CreateInstance(c) as ICreditProvider;
-                }).ToDictionary(c=>c.PositionProvider,c=>c);
+                }).ToDictionary(c => c.PositionProvider, c => c);
         }
 
-      
 
-        public  ICreditProvider GetCreditProvider(string position) 
+
+        public ICreditProvider GetCreditProvider(string position)
         {
             return _creditProviders.TryGetValue(position, out var provider) ? provider : new DefaultCreditProvider();
         }

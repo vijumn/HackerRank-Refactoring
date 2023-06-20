@@ -6,50 +6,40 @@ using System.Text;
 
 namespace Refactoring.LegacyService.Validators
 {
-    public  class CandidateValidator
+
+    public class CandidateValidator : ICandidateValidator
     {
-        private readonly  IDateTimeProvider  _dateTimeProvider;
+        private readonly IDateTimeProvider _dateTimeProvider;
 
         public CandidateValidator(IDateTimeProvider dateTimeProvider)
         {
             _dateTimeProvider = dateTimeProvider;
         }
 
-        public bool HasCreditLessthan500(CreditLimit creditLimit)
+        public bool IsValid(Candidate candidate)
         {
-            if (creditLimit.HasCreditLimit && creditLimit.Credit < 500)
-            {
-                return true;
-            }
-            return false;
+            return
+                HasValidName(candidate.Firstname, candidate.Surname) &&
+                HasValidEmail(candidate.EmailAddress) &&
+                IsCandidateAgeAbove18(candidate.DateOfBirth);
         }
 
-        public bool HasValidName(string firstName, string surName)
+        public  bool HasCreditLessThan500(CreditLimit creditLimit)
         {
-
-            if (string.IsNullOrEmpty(firstName))
-            {
-                return false;
-            }
-            if (string.IsNullOrEmpty(surName))
-            {
-                return false;
-            }
-
-            return true;
-
+            return creditLimit.HasCreditLimit && creditLimit.Credit < 500;
         }
 
-        public bool HasValidEmail(string email)
+        private bool HasValidName(string firstName, string surName)
         {
-            if (!email.Contains("@") || !email.Contains("."))
-            {
-                return false;
-            }
-            return true;
+            return !string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(surName);
         }
 
-        public bool IsCandidateAgeAbove18(DateTime dateofBirth)
+        private bool HasValidEmail(string email)
+        {
+            return email.Contains("@") && email.Contains(".");
+        }
+
+        private bool IsCandidateAgeAbove18(DateTime dateofBirth)
         {
             var now = _dateTimeProvider.Now;
             int age = now.Year - dateofBirth.Year;
@@ -59,12 +49,7 @@ namespace Refactoring.LegacyService.Validators
                 age--;
             }
 
-            if (age < 18)
-            {
-                return false;
-            }
-
-            return true;
+            return age >= 18;
         }
     }
 }

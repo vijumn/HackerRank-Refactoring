@@ -12,15 +12,15 @@
     {
         private readonly IPositionRepository _positionRepository;
         private readonly ICandidateDataAccess _candidateDataAccess;
-        private readonly CandidateValidator _candidateValidator;
-        private readonly CreditProviderFactory _creditProviderFactory;
+        private readonly ICandidateValidator _candidateValidator;
+        private readonly ICreditProviderFactory _creditProviderFactory;
 
         public CandidateService(
             IPositionRepository positionRepository,
             ICandidateDataAccess candidateDataAccess,
             CandidateValidator candidateValidator
 ,
-            CreditProviderFactory creditProviderFactory)
+            ICreditProviderFactory creditProviderFactory)
         {
             _positionRepository = positionRepository;
             _candidateDataAccess = candidateDataAccess;
@@ -39,36 +39,26 @@
 
         public bool AddCandidate(string firname, string surname, string email, DateTime dateOfBirth, int positionid)
         {
-            if (!_candidateValidator.HasValidName(firname, surname))
-            {
-                return false;
-            }
-
-            if (!_candidateValidator.HasValidEmail(email))
-            {
-                return false;
-            }
-
-            if (!_candidateValidator.IsCandidateAgeAbove18(dateOfBirth))
-            {
-                return false;
-            }
-
-            var position = _positionRepository.GetById(positionid);
-
             var candidate = new Candidate
             {
-                Position = position,
                 DateOfBirth = dateOfBirth,
                 EmailAddress = email,
                 Firstname = firname,
                 Surname = surname
             };
 
+            if (!_candidateValidator.IsValid(candidate))
+            {
+                return false;
+            }
+
+            var position = _positionRepository.GetById(positionid);
+            candidate.Position = position;
+
             ICreditProvider provider = _creditProviderFactory.GetCreditProvider(position.Name);
             var creditprovided = provider.GetCreditLimit(candidate);
 
-            if (_candidateValidator.HasCreditLessthan500(creditprovided))
+            if (_candidateValidator.HasCreditLessThan500(creditprovided))
             {
                 return false;
             }
